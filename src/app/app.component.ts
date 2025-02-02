@@ -11,7 +11,7 @@ import { RouterOutlet } from '@angular/router';
 })
 export class AppComponent {
   title = 'csspractice1';
-  @ViewChild('slider') slider: ElementRef | null = null;
+  @ViewChild('slider') slider: ElementRef<HTMLElement> | null = null;
   @ViewChildren('card') cards: QueryList<ElementRef> | null = null;
 
   images: string[] = [
@@ -27,24 +27,32 @@ export class AppComponent {
 
   startX = 0;
   playAnimation = true;
+  mousedown = false;
 
   ngAfterViewInit() {
 
     this.animation();
     document.addEventListener('mousedown', (e)=> {
+      if(!this.isMouseEventInClientArea(e, this.slider?.nativeElement!)) {
+        return
+      }
       this.playAnimation = false;
+      this.mousedown = true;
       this.startX = e.clientX;
     })
     document.addEventListener('mousemove', (e)=> {
-      if(this.playAnimation == false) {
+      if(this.mousedown) {
         var dx = (e.clientX - this.startX)
-        console.log(dx);
-        this.currPosition += dx;
+        this.currPosition += dx*0.2;
         this.startX = e.clientX;
       }
     })
     document.addEventListener('mouseup', ()=> {
-      this.playAnimation = true;
+      this.mousedown = false;
+      setTimeout(()=> {
+        this.playAnimation = true;
+      }, 2000)
+      
     })
   }
 
@@ -55,11 +63,11 @@ export class AppComponent {
   animation() {
     setTimeout(()=> {
       if(this.playAnimation) {
-        this.currPosition = this.currPosition + 0.01;
+        this.currPosition = this.currPosition + 0.05;
       }
       this.updateCards();
       this.animation();
-    }, 5)
+    }, 20)
   }
 
   updateCards() {
@@ -72,13 +80,25 @@ export class AppComponent {
         this.images.unshift(this.images.pop()!)
         this.currPosition = 0;
       }
-      else if(this.currPosition+offset < -70) {
+      else if(this.currPosition+offset < -70) { 
         this.images.push(this.images.shift()!)
-        this.currPosition = 23.2;
+        this.currPosition = 23;
       }
       var parallax = this.scale(this.currPosition + offset, -70, 70, -50, 150)
-      this.cards!.get(i)!.nativeElement.style.transform = `translateY(-50%) translateX(-50%) rotateX(-15deg) rotateY(${this.currPosition + offset}deg) translateZ(9cm) translateY(-2cm)`;
+      this.cards!.get(i)!.nativeElement.style.transform = `translateY(-50%) translateX(-50%) rotateY(${this.currPosition + offset}deg) translateZ(9cm) rotateX(-15deg)`;
       this.cards!.get(i)!.nativeElement.firstChild.style.objectPosition = `${parallax}% 0%`
     }
+  }
+
+  isMouseEventInClientArea(event:any, element: HTMLElement)
+  {
+    var rect = element!.getBoundingClientRect();
+    var minX = rect.left + element!.clientLeft;
+    var x = event.clientX;
+    if (x < minX || x >= minX + element!.clientWidth) return false;
+    var minY = rect.top + element!.clientTop;
+    var y = event.clientY;
+    if (y < minY || y >= minY + element!.clientHeight) return false;
+    return true;
   }
 }
